@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image Converter by Friends</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body {
+      background: linear-gradient(135deg, #74ebd5 0%, #acb6e5 100%);
+      font-family: 'Inter', sans-serif;
+      animation: backgroundAnimation 20s ease infinite alternate;
+    }
+
+    @keyframes backgroundAnimation {
+      0% { background-position: 0% 50%; }
+      100% { background-position: 100% 50%; }
+    }
+
+    .dropzone {
+      border: 2px dashed #93c5fd;
+      padding: 2rem;
+      text-align: center;
+      border-radius: 1.5rem;
+      background: rgba(255, 255, 255, 0.9);
+      transition: all 0.3s ease;
+      backdrop-filter: blur(8px);
+    }
+
+    .dropzone.dragover {
+      background-color: #e0f2fe;
+      border-color: #3b82f6;
+    }
+
+    .preview-img {
+      max-width: 300px;
+      max-height: 300px;
+      margin-top: 1rem;
+      border-radius: 1rem;
+      box-shadow: 0 10px 35px rgba(0, 0, 0, 0.2);
+      border: 4px solid #3b82f6;
+    }
+
+    .dark-download {
+      background-color: #1f2937;
+      color: white;
+      transition: transform 0.3s ease;
+    }
+
+    .dark-download:hover {
+      background-color: #111827;
+      transform: scale(1.05);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center px-4">
+
+  <div class="bg-white bg-opacity-80 p-10 rounded-[2rem] shadow-2xl w-full max-w-2xl border border-blue-200 backdrop-blur-md mt-10">
+    <div class="text-center mb-6">
+      <h1 class="text-5xl font-extrabold text-blue-600 mb-2 tracking-tight drop-shadow-xl">
+        Image Converter
+      </h1>
+      <p class="text-center text-blue-500 font-semibold text-lg italic">by Friends</p>
+    </div>
+
+    <div id="dropzone" class="dropzone cursor-pointer mt-6 mb-6 hover:shadow-2xl">
+      <p class="text-gray-700 font-medium"><i class="fa-solid fa-image mr-2"></i>Drag & Drop, Click, or Paste (Ctrl+V) to Upload</p>
+      <input type="file" id="fileInput" class="hidden" accept="image/*" />
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+      <select id="formatSelect" class="w-full p-3 border border-blue-300 rounded-xl shadow-md bg-blue-50 text-gray-800 focus:outline-none focus:ring-4 focus:ring-blue-400">
+        <option value="jpeg">Convert to JPG</option>
+        <option value="png">Convert to PNG</option>
+        <option value="webp">Convert to WebP</option>
+      </select>
+      <button id="convertBtn" class="w-full bg-black text-white font-bold p-3 rounded-xl shadow-lg hover:scale-105 hover:shadow-xl hover:bg-gray-900 transition-all duration-300">?? Convert</button>
+    </div>
+
+    <div id="previewContainer" class="text-center hidden">
+      <p class="text-gray-800 mb-2 font-medium">??? Preview:</p>
+      <img id="previewImage" class="preview-img mx-auto" />
+      <a id="downloadLink" class="inline-block mt-4 px-6 py-2 rounded-full font-semibold dark-download" download>
+        <i class="fa-solid fa-download mr-1"></i>Download
+      </a>
+    </div>
+  </div>
+
+  <script>
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const convertBtn = document.getElementById('convertBtn');
+    const formatSelect = document.getElementById('formatSelect');
+    const previewImage = document.getElementById('previewImage');
+    const downloadLink = document.getElementById('downloadLink');
+    const previewContainer = document.getElementById('previewContainer');
+
+    let imageFile = null;
+
+    // Event Listeners
+    dropzone.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+    dropzone.addEventListener('dragover', e => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      handleFile(e.dataTransfer.files[0]);
+    });
+    document.addEventListener('paste', e => {
+      [...e.clipboardData.items].forEach(item => {
+        if (item.type.indexOf('image') !== -1) handleFile(item.getAsFile());
+      });
+    });
+
+    function handleFile(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      imageFile = file;
+      const reader = new FileReader();
+      reader.onload = e => {
+        previewImage.src = e.target.result;
+        previewContainer.classList.remove('hidden');
+      };
+      reader.readAsDataURL(file);
+    }
+
+    convertBtn.addEventListener('click', () => {
+      if (!imageFile) return alert("Please select an image first.");
+      const format = formatSelect.value;
+      const reader = new FileReader();
+
+      reader.onload = e => {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = img.width;
+          canvas.height = img.height;
+          canvas.getContext('2d').drawImage(img, 0, 0);
+          const mimeType = format === 'jpeg' ? 'image/jpeg' : format === 'png' ? 'image/png' : 'image/webp';
+
+          canvas.toBlob(blob => {
+            const url = URL.createObjectURL(blob);
+            downloadLink.href = url;
+            downloadLink.download = `converted.${format}`;
+            previewImage.src = url;
+            previewContainer.classList.remove('hidden');
+          }, mimeType);
+        };
+      };
+      reader.readAsDataURL(imageFile);
+    });
+  </script>
+</body>
+</html>
